@@ -1,0 +1,129 @@
+#!/usr/bin/env bash
+# govless-tunnel-health-check
+# Per 014 v2 hardened design:
+#   1. 30s cold-start grace (skip if cloudflared was (re)started < 30s ago).
+#   2. Backend-first probe to 127.0.0.1:8443/api/healthz — if backend is the cause,
+#      restarting cloudflared won't help.
+#   3. Secondary probe of the tunnel URL with curl --resolve pinning to a
+#      Cloudflare edge IP, so DNS hiccups don't trigger a restart.
+#   4. Hysteresis: 2 consecutive 5-minute fails before restart.
+#
+# State: /run/govless/tunnel-health.state  (single int: consecutive_fail_count)
+# Log:   /var/log/govless-tunnel-health.log
+
+set -euo pipefail
+
+URL_FILE="${GOVLESS_TUNNEL_URL_FILE:-/run/govless/tunnel.url}"
+STATE_FILE="${GOVLESS_TUNNEL_HEALTH_STATE:-/run/govless/tunnel-health.state}"
+LOG_FILE="${GOVLESS_TUNNEL_HEALTH_LOG:-/var/log/govless-tunnel-health.log}"
+BACKEND_URL="${GOVLESS_BACKEND_HEALTH_URL:-http://127.0.0.1:8443/api/healthz}"
+SERVICE="${GOVLESS_TUNNEL_SERVICE:-cloudflared-quick.service}"
+COLDSTART_GRACE_SEC="${GOVLESS_TUNNEL_COLDSTART_GRACE:-30}"
+FAIL_THRESHOLD="${GOVLESS_TUNNEL_FAIL_THRESHOLD:-2}"
+CURL_TIMEOUT="${GOVLESS_TUNNEL_CURL_TIMEOUT:-8}"
+EDGE_IP="${GOVLESS_TUNNEL_EDGE_IP:-104.16.123.96}" # cloudflare anycast; pinned to avoid DNS flakes
+
+mkdir -p "$(dirname "$STATE_FILE")" 2>/dev/null || true
+
+ts() { date -u '+%Y-%m-%dT%H:%M:%SZ'; }
+log() { printf '%s health: %s\n' "$(ts)" "$*" >>"$LOG_FILE" 2>/dev/null || true; }
+tunnel_fp() { printf '%s' "$1" | sha256sum | cut -c1-12; }
+
+read_state() {
+    if [ -r "$STATE_FILE" ]; then
+        cat "$STATE_FILE" 2>/dev/null | tr -dc '0-9' || true
+    fi
+}
+write_state() { printf '%s\n' "$1" >"$STATE_FILE" 2>/dev/null || true; }
+reset_state() { write_state 0; }
+
+# --- 1. Cold-start grace ---
+if command -v systemctl >/dev/null 2>&1; then
+    if systemctl is-active --quiet "$SERVICE" 2>/dev/null; then
+        START_TS="$(systemctl show -p ActiveEnterTimestampMonotonic --value "$SERVICE" 2>/dev/null || echo 0)"
+        NOW_MONO_USEC="$(awk '{printf "%.0f", $1 * 1000000}' /proc/uptime 2>/dev/null || echo 0)"
+        if [ -n "$START_TS" ] && [ "$START_TS" != "0" ] && [ "$NOW_MONO_USEC" != "0" ]; then
+            AGE_SEC=$(( (NOW_MONO_USEC - START_TS) / 1000000 ))
+            if [ "$AGE_SEC" -lt "$COLDSTART_GRACE_SEC" ]; then
+                log "cold-start grace: service active for ${AGE_SEC}s (<${COLDSTART_GRACE_SEC}s); skip"
+                exit 0
+            fi
+        fi
+    else
+        log "service $SERVICE not active — skip (assume not Lite mode or stopped intentionally)"
+        exit 0
+    fi
+fi
+
+# --- 2. Backend probe ---
+if ! curl -fsS --max-time "$CURL_TIMEOUT" -o /dev/null "$BACKEND_URL"; then
+    log "backend probe FAILED ($BACKEND_URL) — not restarting cloudflared (backend issue)"
+    # We do not increment the fail counter — restart wouldn't help.
+    exit 0
+fi
+
+# --- 3. Tunnel probe ---
+TUNNEL_URL=""
+if [ -r "$URL_FILE" ]; then
+    TUNNEL_URL="$(cat "$URL_FILE" 2>/dev/null | tr -d '\r\n' || true)"
+fi
+if [ -z "$TUNNEL_URL" ]; then
+    if [ -x /usr/local/bin/govless-tunnel-url-extract ]; then
+        /usr/local/bin/govless-tunnel-url-extract >/dev/null 2>&1 || true
+        if [ -r "$URL_FILE" ]; then
+            TUNNEL_URL="$(cat "$URL_FILE" 2>/dev/null | tr -d '\r\n' || true)"
+        fi
+    fi
+    if [ -z "$TUNNEL_URL" ]; then
+        log "tunnel URL not yet known — extractor could not recover it"
+        exit 0
+    fi
+    log "tunnel URL recovered from cloudflared log (sha256:$(tunnel_fp "$TUNNEL_URL"))"
+fi
+
+HOST="${TUNNEL_URL#https://}"
+HOST="${HOST%%/*}"
+
+PROBE_OK=0
+if curl -fsS --max-time "$CURL_TIMEOUT" --resolve "${HOST}:443:${EDGE_IP}" -o /dev/null "${TUNNEL_URL%/}/api/healthz"; then
+    PROBE_OK=1
+elif curl -fsS --max-time "$CURL_TIMEOUT" -o /dev/null "${TUNNEL_URL%/}/api/healthz"; then
+    PROBE_OK=1
+fi
+
+if [ "$PROBE_OK" -eq 1 ]; then
+    PREV="$(read_state)"
+    if [ -n "$PREV" ] && [ "$PREV" -gt 0 ] 2>/dev/null; then
+        log "probe OK — clearing fail counter (was=$PREV)"
+    fi
+    reset_state
+    exit 0
+fi
+
+# --- 4. Hysteresis ---
+FAILS="$(read_state)"
+[ -z "$FAILS" ] && FAILS=0
+FAILS=$((FAILS + 1))
+write_state "$FAILS"
+
+log "probe FAILED for tunnel sha256:$(tunnel_fp "$TUNNEL_URL") (consecutive=$FAILS / $FAIL_THRESHOLD)"
+
+if [ "$FAILS" -ge "$FAIL_THRESHOLD" ]; then
+    log "threshold reached — restarting $SERVICE"
+    if command -v systemctl >/dev/null 2>&1; then
+        if systemctl restart "$SERVICE" >/dev/null 2>&1; then
+            if [ -x /usr/local/bin/govless-tunnel-url-extract ]; then
+                /usr/local/bin/govless-tunnel-url-extract >/dev/null 2>&1 || true
+            fi
+        else
+            log "warn: systemctl restart failed"
+        fi
+    fi
+    reset_state
+    # Escalation hook (best-effort).
+    if [ -x /usr/local/bin/govless-tunnel-escalation-check ]; then
+        /usr/local/bin/govless-tunnel-escalation-check >/dev/null 2>&1 || true
+    fi
+fi
+
+exit 0

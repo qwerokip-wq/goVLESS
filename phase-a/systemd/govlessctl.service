@@ -1,0 +1,22 @@
+[Unit]
+Description=goVLESS control daemon (JSON-RPC over UNIX socket)
+Documentation=https://github.com/anten-ka/govless
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/opt/govless/bin/govlessctl-daemon
+
+[Service]
+Type=simple
+User=root
+Group=govless
+RuntimeDirectory=govless
+RuntimeDirectoryMode=0750
+ExecStart=/opt/govless/bin/govlessctl-daemon
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+# Daemon manages /run/govlessctl.sock itself and chowns to root:govless 0660.
+
+[Install]
+WantedBy=multi-user.target

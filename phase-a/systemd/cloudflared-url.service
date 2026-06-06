@@ -1,0 +1,9 @@
+[Unit]
+Description=Extract Quick Tunnel URL from cloudflared.log
+After=cloudflared-quick.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/govless-tunnel-url-extract
+StandardOutput=journal
+StandardError=journal

@@ -1,0 +1,11 @@
+[Unit]
+Description=goVLESS Quick Tunnel health-check timer (every 5m)
+
+[Timer]
+OnBootSec=60
+OnUnitActiveSec=300
+Unit=tunnel-health.service
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target

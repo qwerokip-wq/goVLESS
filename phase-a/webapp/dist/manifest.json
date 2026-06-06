@@ -1,0 +1,12 @@
+{
+  "name": "goVLESS Admin",
+  "short_name": "goVLESS",
+  "description": "Telegram WebApp for managing goVLESS VPN clients",
+  "start_url": "/app/",
+  "scope": "/app/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#17212b",
+  "theme_color": "#17212b",
+  "icons": []
+}

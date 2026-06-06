@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+# govless-tunnel-url-extract
+# Parses /var/log/cloudflared.log for the most recent *.trycloudflare.com URL
+# and atomically writes it to /run/govless/tunnel.url. Reloads govless-bot
+# (best-effort) when the URL changes.
+#
+# Per CONTRACT.md §4 and 014 v2 spec.
+
+set -euo pipefail
+
+LOG_FILE="${GOVLESS_CLOUDFLARED_LOG:-/var/log/cloudflared.log}"
+URL_FILE="${GOVLESS_TUNNEL_URL_FILE:-/run/govless/tunnel.url}"
+URL_DIR="$(dirname "$URL_FILE")"
+TRACE_LOG="${GOVLESS_TUNNEL_TRACE_LOG:-/var/log/govless-tunnel.log}"
+WAIT_SEC="${GOVLESS_TUNNEL_EXTRACT_WAIT_SEC:-20}"
+
+ts() { date -u '+%Y-%m-%dT%H:%M:%SZ'; }
+log() { printf '%s govless-tunnel-url-extract: %s\n' "$(ts)" "$*" >>"$TRACE_LOG" 2>/dev/null || true; }
+
+# Ensure target directory exists (RuntimeDirectory should create /run/govless,
+# but be defensive on first boot).
+if [ ! -d "$URL_DIR" ]; then
+    install -d -m 0750 "$URL_DIR" 2>/dev/null || mkdir -p "$URL_DIR"
+fi
+
+if [ ! -r "$LOG_FILE" ]; then
+    log "log file not readable yet: $LOG_FILE — exit 0"
+    exit 0
+fi
+
+# Per CONTRACT: grep most recent *.trycloudflare.com URL. cloudflared can take
+# a few seconds to print it after process start; wait briefly so installer and
+# health-check calls do not race the log writer.
+NEW_URL=""
+DEADLINE=$((SECONDS + WAIT_SEC))
+while true; do
+    NEW_URL="$(grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' "$LOG_FILE" 2>/dev/null | tail -n 1 || true)"
+    [ -n "$NEW_URL" ] && break
+    [ "$SECONDS" -ge "$DEADLINE" ] && break
+    sleep 1
+done
+
+if [ -z "$NEW_URL" ]; then
+    log "no trycloudflare URL found yet after ${WAIT_SEC}s"
+    exit 0
+fi
+
+OLD_URL=""
+if [ -r "$URL_FILE" ]; then
+    OLD_URL="$(cat "$URL_FILE" 2>/dev/null || true)"
+fi
+
+if [ "$NEW_URL" = "$OLD_URL" ]; then
+    # No change — quiet exit.
+    exit 0
+fi
+
+# Atomic write via mktemp + mv.
+TMP="$(mktemp "${URL_DIR}/.tunnel.url.XXXXXX")"
+printf '%s\n' "$NEW_URL" >"$TMP"
+# tunnel.url is sensitive: anyone who reads it can hit the Mini App
+# endpoint and probe the daemon. Restrict to root + govless group only
+# (the bot runs as govless and needs to read it). chown only succeeds
+# under root; if we somehow got demoted, the mv still succeeds and the
+# 0640 perms prevent world-read either way.
+chmod 0640 "$TMP"
+chown root:govless "$TMP" 2>/dev/null || true
+mv -f "$TMP" "$URL_FILE"
+
+# Log fingerprints, not URLs — journalctl/syslog is often readable by
+# operators or the adm group, and the tunnel URL is the public address
+# of the admin Mini App. sha256 first 12 chars is enough to correlate
+# events without leaking the URL.
+OLD_FP="$(printf '%s' "${OLD_URL:-}" | sha256sum | cut -c1-12)"
+NEW_FP="$(printf '%s' "${NEW_URL}"   | sha256sum | cut -c1-12)"
+log "tunnel URL changed (sha256: ${OLD_FP} -> ${NEW_FP})"
+
+# Best-effort: notify the bot to refresh WebApp button.
+# We use SIGHUP via systemctl reload — bot ignores if not running.
+if command -v systemctl >/dev/null 2>&1; then
+    if systemctl is-active --quiet govless-bot.service 2>/dev/null; then
+        systemctl reload-or-restart govless-bot.service >/dev/null 2>&1 || \
+            log "warn: reload govless-bot.service failed (non-fatal)"
+    fi
+fi
+
+exit 0

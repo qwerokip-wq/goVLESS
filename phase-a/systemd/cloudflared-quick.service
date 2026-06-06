@@ -1,0 +1,29 @@
+[Unit]
+Description=cloudflared Quick Tunnel (goVLESS Lite mode)
+Documentation=https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/
+After=network-online.target webapp-frontend.service
+Wants=network-online.target
+ConditionPathExists=/usr/local/bin/cloudflared
+StartLimitIntervalSec=300
+StartLimitBurst=6
+
+[Service]
+Type=simple
+User=govless
+Group=govless
+# `+` runs ExecStartPre as root (not the unit's User=govless), because chown
+# to a different uid requires CAP_CHOWN. Without this, fresh Lite installs
+# fail to start the tunnel on every boot (see bridge 050 VPS-A finding).
+# touch ensures the log exists, chown lets govless append (cloudflared
+# runs as govless and writes its own log), chmod 0640 prevents x-ui
+# and other non-govless processes from harvesting the quick-tunnel URL
+# that cloudflared prints into this file on startup (bridge-050 leak).
+ExecStartPre=+/bin/sh -c '/usr/bin/install -d -m 0750 -o root -g govless /run/govless && rm -f /run/govless/tunnel.url && : > /var/log/cloudflared.log && chown root:govless /var/log/cloudflared.log && chmod 0640 /var/log/cloudflared.log'
+ExecStart=/usr/local/bin/cloudflared tunnel --no-autoupdate --metrics 127.0.0.1:18181 --url http://127.0.0.1:8443
+Restart=always
+RestartSec=10
+StandardOutput=append:/var/log/cloudflared.log
+StandardError=append:/var/log/cloudflared.log
+
+[Install]
+WantedBy=multi-user.target

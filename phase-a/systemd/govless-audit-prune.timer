@@ -1,0 +1,11 @@
+[Unit]
+Description=goVLESS audit log retention prune (daily 03:14)
+
+[Timer]
+OnCalendar=*-*-* 03:14:00
+Persistent=true
+Unit=govless-audit-prune.service
+AccuracySec=1m
+
+[Install]
+WantedBy=timers.target

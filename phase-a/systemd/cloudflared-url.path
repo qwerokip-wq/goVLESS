@@ -1,0 +1,10 @@
+[Unit]
+Description=Watch cloudflared.log for tunnel URL changes (goVLESS Lite mode)
+After=cloudflared-quick.service
+
+[Path]
+PathModified=/var/log/cloudflared.log
+Unit=cloudflared-url.service
+
+[Install]
+WantedBy=multi-user.target

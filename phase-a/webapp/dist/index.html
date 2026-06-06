@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ru" data-theme="system">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>goVLESS</title>
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="style.css?v=20260527-qa-7">
+<link rel="stylesheet" href="design/motion.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.development.min.js" crossorigin></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.development.min.js" crossorigin></script>
+</head>
+<body>
+<div id="root"><div style="display:flex;justify-content:center;padding:60px"><div style="width:28px;height:28px;border:3px solid rgba(255,255,255,0.15);border-top-color:#6ee0a6;border-radius:50%;animation:spin 800ms linear infinite"></div></div></div>
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+
+<!-- Design canvas: shared tokens + all screen components (visual previews) -->
+<script src="design/theme-tokens.js"></script>
+<script src="design/content.js"></script>
+<script src="design/motion-system.js"></script>
+<script src="design/intro-crawl.js"></script>
+<script src="design/disclaimer.js"></script>
+<script src="design/partners.js"></script>
+<script src="design/variants-light.js"></script>
+<script src="design/variants-dark.js"></script>
+<script src="design/theme-picker.js"></script>
+<script src="design/confirm.js"></script>
+<script src="design/states.js"></script>
+<script src="design/wizard.js"></script>
+<script src="design/clients.js"></script>
+<script src="design/system.js"></script>
+<script src="design/extras.js"></script>
+
+<!-- Production app: router + RPC + real-data wiring for Home / Clients / ClientCard -->
+<script src="app.js?v=20260530-b1"></script>
+
+<noscript>This app requires JavaScript and must be opened from the Telegram bot.</noscript>
+</body>
+</html>

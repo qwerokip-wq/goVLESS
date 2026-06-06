@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<title>goVLESS WebApp — концепции дизайна</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="motion.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&family=Manrope:wght@400;500;600;700;800&family=Nunito:wght@500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=Newsreader:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; background: #131316; }
+  body { font-family: "IBM Plex Sans", system-ui, sans-serif; }
+  /* canvas dark background */
+  .design-canvas { background: #131316 !important; }
+  .design-canvas .dc-sectionhead { color: #e8e6df; }
+  .design-canvas .dc-editable { color: #e8e6df; }
+  .design-canvas .dc-labeltext .dc-editable { color: #a7a59c !important; }
+  .design-canvas .dc-grip { color: #a7a59c; }
+  .design-canvas .dc-grip:hover { background: rgba(255,255,255,0.06); }
+  .design-canvas .dc-expand, .design-canvas .dc-kebab { color: #a7a59c !important; }
+  .design-canvas .dc-expand:hover, .design-canvas .dc-kebab:hover { background: rgba(255,255,255,0.06) !important; color: #e8e6df !important; }
+  .design-canvas .dc-menu { background: #232325 !important; box-shadow: 0 12px 32px rgba(0,0,0,0.4) !important; }
+  .design-canvas .dc-menu button { color: #e8e6df !important; }
+  .design-canvas .dc-menu button:hover { background: rgba(255,255,255,0.06) !important; }
+  /* Re-tint grid */
+  .design-canvas > div > div:first-child {
+    background-image: url("data:image/svg+xml,%3Csvg width='120' height='120' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M120 0H0v120' fill='none' stroke='rgba(255,255,255,0.04)' stroke-width='1'/%3E%3C/svg%3E") !important;
+  }
+
+  /* All variants must clip cleanly */
+  .frame {
+    width: 100%; height: 100%; overflow: hidden;
+    display: flex; flex-direction: column;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<!-- Switched from unpkg.com to cdnjs.cloudflare.com — unpkg returns 503 from many Russian ISPs
+     while cdnjs is consistently reachable. SRI hashes dropped because cdnjs ships re-built bundles
+     with different file hashes; we'll either restore SRI with cdnjs-specific hashes or accept the
+     CSP `script-src` allow-list as the integrity boundary. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.development.min.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.development.min.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.26.10/babel.min.js" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="content.jsx"></script>
+<script type="text/babel" src="variants-light.jsx"></script>
+<script type="text/babel" src="variants-dark.jsx"></script>
+<script type="text/babel" src="theme-picker.jsx"></script>
+<script type="text/babel" src="intro-crawl.jsx"></script>
+<script type="text/babel" src="partners.jsx"></script>
+<script type="text/babel" src="disclaimer.jsx"></script>
+<script type="text/babel" src="motion-system.jsx"></script>
+<script type="text/babel" src="theme-tokens.jsx"></script>
+<script type="text/babel" src="confirm.jsx"></script>
+<script type="text/babel" src="states.jsx"></script>
+<script type="text/babel" src="wizard.jsx"></script>
+<script type="text/babel" src="clients.jsx"></script>
+<script type="text/babel" src="system.jsx"></script>
+<script type="text/babel" src="extras.jsx"></script>
+<script type="text/babel">
+  const W = 360, H = 740;
+  function App() {
+    return (
+      <DesignCanvas>
+        <DCSection id="primitives" title="Primitives · confirms + states" subtitle="Batch 1.1 · фундамент для всех destructive-actions и data-screens. Рендерится L5+D2 × RU+EN.">
+          <DCArtboard id="tc-d2-ru"  label="TypedConfirm · D2 · RU"  width={W} height={H}><TypedConfirmModal theme="D2" lang="ru" title="Удалить клиента" description="Действие необратимо. Ссылки клиента «iPhone Anna» станут недействительны." echo="DELETE iPhone Anna" typedValue="DELETE iPho" ttl={47}/></DCArtboard>
+          <DCArtboard id="tc-l5-ru"  label="TypedConfirm · L5 · RU"  width={W} height={H}><TypedConfirmModal theme="L5" lang="ru" title="Удалить клиента" description="Действие необратимо. Ссылки клиента «iPhone Anna» станут недействительны." echo="DELETE iPhone Anna" typedValue="DELETE iPhone Anna" ttl={28}/></DCArtboard>
+          <DCArtboard id="tc-d2-en"  label="TypedConfirm · D2 · EN"  width={W} height={H}><TypedConfirmModal theme="D2" lang="en" title="Rotate tunnel URL" description="All client subscriptions will continue working. The bot will repost the new URL." echo="ROTATE TUNNEL" typedValue="ROTATE TUNL" ttl={52} error/></DCArtboard>
+          <DCArtboard id="gm-d2-ru"  label="GenericModal · D2 · RU"  width={W} height={H}><GenericModalDemo theme="D2" lang="ru"/></DCArtboard>
+          <DCArtboard id="gm-l5-en"  label="GenericModal · L5 · EN"  width={W} height={H}><GenericModalDemo theme="L5" lang="en"/></DCArtboard>
+          <DCArtboard id="as-d2-ru"  label="ActionSheet · D2 · RU"   width={W} height={H}><ActionSheetDemo theme="D2" lang="ru"/></DCArtboard>
+          <DCArtboard id="as-l5-ru"  label="ActionSheet · L5 · RU"   width={W} height={H}><ActionSheetDemo theme="L5" lang="ru"/></DCArtboard>
+          <DCArtboard id="sk-d2"     label="Skeleton · D2"            width={W} height={H}><SkeletonClientsList theme="D2" lang="ru"/></DCArtboard>
+          <DCArtboard id="sk-l5"     label="Skeleton · L5"            width={W} height={H}><SkeletonClientsList theme="L5" lang="ru"/></DCArtboard>
+          <DCArtboard id="em-d2-ru"  label="Empty · D2 · RU"          width={W} height={H}><EmptyClients theme="D2" lang="ru"/></DCArtboard>
+          <DCArtboard id="em-l5-ru"  label="Empty · L5 · RU"          width={W} height={H}><EmptyClients theme="L5" lang="ru"/></DCArtboard>
+          <DCArtboard id="er-d2-ru"  label="Error offline · D2 · RU"  width={W} height={H}><ErrorOffline theme="D2" lang="ru"/></DCArtboard>
+          <DCArtboard id="er-l5-en"  label="Error offline · L5 · EN"  width={W} height={H}><ErrorOffline theme="L5" lang="en"/></DCArtboard>
+          <DCArtboard id="to-d2-ru"  label="Timeout · D2 · RU"        width={W} height={H}><ErrorTimeout theme="D2" lang="ru"/></DCArtboard>
+          <DCArtboard id="bn-d2-ru"  label="Banners + Toasts · D2"    width={W} height={H}><BannersShowcase theme="D2" lang="ru"/></DCArtboard>
+          <DCArtboard id="bn-l5-en"  label="Banners + Toasts · L5"    width={W} height={H}><BannersShowcase theme="L5" lang="en"/></DCArtboard>
+        </DCSection>
+        <DCSection id="motion" title="Motion System" subtitle="Живой документ motion-языка. Apple-inspired — spring, hairlines, depth.">
+          <DCArtboard id="motion-doc" label="Motion System · v0.1" width={W} height={H}><MotionSystem /></DCArtboard>
+        </DCSection>
+        <DCSection id="firstrun" title="Первый запуск / First run" subtitle="Дисклеймер-кролл + 3 варианта партнёрской страницы">
+          <DCArtboard id="intro-ru" label="Disclaimer crawl · RU" width={W} height={H}><IntroCrawl lang="ru" /></DCArtboard>
+          <DCArtboard id="intro-en" label="Disclaimer crawl · EN" width={W} height={H}><IntroCrawl lang="en" /></DCArtboard>
+          <DCArtboard id="dz-top"   label="Disclaimer · верх"     width={W} height={H}><DisclaimerScreen lang="ru" agreed={false} scrollPct={12} /></DCArtboard>
+          <DCArtboard id="dz-mid"   label="Disclaimer · середина"   width={W} height={H}><DisclaimerScreen lang="ru" agreed={false} scrollPct={58} /></DCArtboard>
+          <DCArtboard id="dz-done"  label="Disclaimer · согласен" width={W} height={H}><DisclaimerScreen lang="ru" agreed={true}  scrollPct={100} /></DCArtboard>
+          <DCArtboard id="dz-en"    label="Disclaimer · EN chrome"   width={W} height={H}><DisclaimerScreen lang="en" agreed={false} scrollPct={42} /></DCArtboard>
+          <DCArtboard id="part-A"  label="A · Card stack"     width={W} height={H}><PartnersA lang="ru" /></DCArtboard>
+          <DCArtboard id="part-B"  label="B · Boarding-pass"  width={W} height={H}><PartnersB lang="ru" /></DCArtboard>
+        </DCSection>
+        <DCSection id="light" title="Светлая / Light" subtitle="L5 · Pastel Mint">
+          <DCArtboard id="L5" label="L5 · Pastel Mint" width={W} height={H}><L5_PastelMint /></DCArtboard>
+        </DCSection>
+        <DCSection id="dark" title="Тёмная / Dark" subtitle="D2 · Midnight Slate">
+          <DCArtboard id="D2" label="D2 · Midnight Slate" width={W} height={H}><D2_MidnightSlate /></DCArtboard>
+        </DCSection>
+        <DCSection id="picker" title="Экран выбора темы / Theme picker" subtitle="Settings → Appearance. Сразу показываю экран в 4 комбинациях: RU/EN × Light/Dark.">
+          <DCArtboard id="PR-RU-L" label="RU · Light shell" width={W} height={H}><ThemePicker lang="ru" mode="light" selected="L5" /></DCArtboard>
+          <DCArtboard id="PR-EN-L" label="EN · Light shell" width={W} height={H}><ThemePicker lang="en" mode="light" selected="L5" /></DCArtboard>
+          <DCArtboard id="PR-RU-D" label="RU · Dark shell"  width={W} height={H}><ThemePicker lang="ru" mode="dark"  selected="D2" /></DCArtboard>
+          <DCArtboard id="PR-EN-D" label="EN · Dark shell"  width={W} height={H}><ThemePicker lang="en" mode="dark"  selected="D2" /></DCArtboard>
+        </DCSection>
+
+        <DCSection id="wizard" title="Setup Wizard" subtitle="W1→W5 · подключение VPS, выбор режима, протокол, установка, готово">
+          <DCArtboard id="W1-d2"      label="W1 · Connect VPS · D2"    width={W} height={H}><W1Connect theme="D2" lang="ru" state="ok"/></DCArtboard>
+          <DCArtboard id="W1-d2-fail" label="W1 · Connect fail"        width={W} height={H}><W1Connect theme="D2" lang="ru" state="fail"/></DCArtboard>
+          <DCArtboard id="W1-l5"      label="W1 · L5"                  width={W} height={H}><W1Connect theme="L5" lang="ru" state="ok"/></DCArtboard>
+          <DCArtboard id="W2-d2-lite" label="W2 · Mode Lite · D2"     width={W} height={H}><W2Mode theme="D2" lang="ru" mode="lite"/></DCArtboard>
+          <DCArtboard id="W2-d2-pro"  label="W2 · Mode Pro · D2"      width={W} height={H}><W2Mode theme="D2" lang="ru" mode="pro"/></DCArtboard>
+          <DCArtboard id="W2-l5-lite" label="W2 · Mode Lite · L5"     width={W} height={H}><W2Mode theme="L5" lang="ru" mode="lite"/></DCArtboard>
+          <DCArtboard id="W3-d2"      label="W3 · Protocol · D2"      width={W} height={H}><W3Protocol theme="D2" lang="ru"/></DCArtboard>
+          <DCArtboard id="W3-l5"      label="W3 · Protocol · L5"      width={W} height={H}><W3Protocol theme="L5" lang="ru"/></DCArtboard>
+          <DCArtboard id="W4-d2"      label="W4 · Installing · D2"    width={W} height={H}><W4Install theme="D2" lang="ru" currentStep={3}/></DCArtboard>
+          <DCArtboard id="W4-l5"      label="W4 · Installing · L5"    width={W} height={H}><W4Install theme="L5" lang="ru" currentStep={3}/></DCArtboard>
+          <DCArtboard id="W5-d2"      label="W5 · Done · D2"          width={W} height={H}><W5Done theme="D2" lang="ru"/></DCArtboard>
+          <DCArtboard id="W5-l5"      label="W5 · Done · L5"          width={W} height={H}><W5Done theme="L5" lang="ru"/></DCArtboard>
+          <DCArtboard id="W5-d2-en"   label="W5 · Done · D2 · EN"     width={W} height={H}><W5Done theme="D2" lang="en"/></DCArtboard>
+        </DCSection>
+
+        <DCSection id="clients" title="Clients" subtitle="C1 список · C2 карточка · C3 add · C4 QR · C5 edit">
+          <DCArtboard id="C1-d2" label="C1 · List · D2"        width={W} height={H}><ClientsList theme="D2" lang="ru"/></DCArtboard>
+          <DCArtboard id="C1-l5" label="C1 · List · L5"        width={W} height={H}><ClientsList theme="L5" lang="ru"/></DCArtboard>
+          <DCArtboard id="C1-en" label="C1 · List · D2 · EN"   width={W} height={H}><ClientsList theme="D2" lang="en"/></DCArtboard>
+          <DCArtboard id="C2-d2" label="C2 · Card · D2"        width={W} height={H}><ClientCard theme="D2" lang="ru"/></DCArtboard>
+          <DCArtboard id="C2-l5" label="C2 · Card · L5"        width={W} height={H}><ClientCard theme="L5" lang="ru"/></DCArtboard>
+          <DCArtboard id="C3-d2" label="C3 · Add · D2"         width={W} height={H}><AddClient theme="D2" lang="ru"/></DCArtboard>
+          <DCArtboard id="C3-l5" label="C3 · Add · L5"         width={W} height={H}><AddClient theme="L5" lang="ru"/></DCArtboard>
+          <DCArtboard id="C4-d2" label="C4 · QR · D2"          width={W} height={H}><QRShare theme="D2" lang="ru"/></DCArtboard>
+          <DCArtboard id="C4-l5" label="C4 · QR · L5"          width={W} height={H}><QRShare theme="L5" lang="ru"/></DCArtboard>
+          <DCArtboard id="C5-d2" label="C5 · Edit · D2"        width={W} height={H}><EditField theme="D2" lang="ru"/></DCArtboard>
+        </DCSection>
+
+        <DCSection id="system" title="System" subtitle="S1 overview · S2 panel access · S3 mode switch · S4 repair">
+          <DCArtboard id="S1-d2" label="S1 · Overview · D2"    width={W} height={H}><SystemOverview theme="D2" lang="ru"/></DCArtboard>
+          <DCArtboard id="S1-l5" label="S1 · Overview · L5"    width={W} height={H}><SystemOverview theme="L5" lang="ru"/></DCArtboard>
+          <DCArtboard id="S2-d2" label="S2 · Panel access · D2" width={W} height={H}><PanelAccess theme="D2" lang="ru"/></DCArtboard>
+          <DCArtboard id="S2-l5" label="S2 · Panel access · L5" width={W} height={H}><PanelAccess theme="L5" lang="ru"/></DCArtboard>
+          <DCArtboard id="S3-d2" label="S3 · Mode switch · D2"  width={W} height={H}><ModeSwitch theme="D2" lang="ru"/></DCArtboard>
+          <DCArtboard id="S3-l5" label="S3 · Mode switch · L5"  width={W} height={H}><ModeSwitch theme="L5" lang="ru"/></DCArtboard>
+          <DCArtboard id="S4-d2" label="S4 · Repair · D2"       width={W} height={H}><Repair theme="D2" lang="ru"/></DCArtboard>
+          <DCArtboard id="S4-l5" label="S4 · Repair · L5"       width={W} height={H}><Repair theme="L5" lang="ru"/></DCArtboard>
+        </DCSection>
+
+        <DCSection id="inbounds" title="Inbounds" subtitle="I1 список · I2 деталь">
+          <DCArtboard id="I1-d2" label="I1 · List · D2"   width={W} height={H}><InboundsList theme="D2" lang="ru"/></DCArtboard>
+          <DCArtboard id="I1-l5" label="I1 · List · L5"   width={W} height={H}><InboundsList theme="L5" lang="ru"/></DCArtboard>
+          <DCArtboard id="I2-d2" label="I2 · Detail · D2" width={W} height={H}><InboundDetail theme="D2" lang="ru"/></DCArtboard>
+          <DCArtboard id="I2-l5" label="I2 · Detail · L5" width={W} height={H}><InboundDetail theme="L5" lang="ru"/></DCArtboard>
+        </DCSection>
+
+        <DCSection id="admins" title="Admins" subtitle="A1 · управление ботом">
+          <DCArtboard id="A1-d2" label="A1 · D2" width={W} height={H}><Admins theme="D2" lang="ru"/></DCArtboard>
+          <DCArtboard id="A1-l5" label="A1 · L5" width={W} height={H}><Admins theme="L5" lang="ru"/></DCArtboard>
+          <DCArtboard id="A1-en" label="A1 · D2 · EN" width={W} height={H}><Admins theme="D2" lang="en"/></DCArtboard>
+        </DCSection>
+
+        <DCSection id="settings" title="Settings → About / Notifications" subtitle="ST1 · ST2">
+          <DCArtboard id="ST1-d2" label="About · D2"         width={W} height={H}><About theme="D2" lang="ru"/></DCArtboard>
+          <DCArtboard id="ST1-l5" label="About · L5"         width={W} height={H}><About theme="L5" lang="ru"/></DCArtboard>
+          <DCArtboard id="ST2-d2" label="Notifications · D2" width={W} height={H}><Notifications theme="D2" lang="ru"/></DCArtboard>
+          <DCArtboard id="ST2-l5" label="Notifications · L5" width={W} height={H}><Notifications theme="L5" lang="ru"/></DCArtboard>
+        </DCSection>
+
+        <DCSection id="backup" title="Backup / Restore" subtitle="B1 список · B2 восстановить">
+          <DCArtboard id="B1-d2" label="B1 · List · D2"    width={W} height={H}><BackupList theme="D2" lang="ru"/></DCArtboard>
+          <DCArtboard id="B1-l5" label="B1 · List · L5"    width={W} height={H}><BackupList theme="L5" lang="ru"/></DCArtboard>
+          <DCArtboard id="B2-d2" label="B2 · Restore · D2" width={W} height={H}><BackupRestore theme="D2" lang="ru"/></DCArtboard>
+          <DCArtboard id="B2-l5" label="B2 · Restore · L5" width={W} height={H}><BackupRestore theme="L5" lang="ru"/></DCArtboard>
+        </DCSection>
+      </DesignCanvas>
+    );
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

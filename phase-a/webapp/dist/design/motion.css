@@ -1,0 +1,189 @@
+/* ─────────────────────────────────────────────────────────────
+   goVLESS · Motion System
+   Apple-inspired: spring physics, hairlines, depth through blur,
+   never linear, never aggressive.
+   ───────────────────────────────────────────────────────────── */
+
+:root {
+  /* ── Durations ────────────────────────────────────────────── */
+  --m-fast:    140ms;   /* press, hover-state change */
+  --m-base:    240ms;   /* card/list reveal */
+  --m-slow:    460ms;   /* page enter, modal */
+  --m-ambient: 3200ms;  /* breathing pulse, ambient glow */
+
+  /* ── Easings ──────────────────────────────────────────────── */
+  /* Signature: Apple's "soft" cubic — gentle on both ends */
+  --m-soft:    cubic-bezier(0.32, 0.72, 0, 1);
+  /* Sharp exit — for things leaving the viewport */
+  --m-exit:    cubic-bezier(0.4, 0.0, 1, 1);
+  /* Bouncy spring — for confirms, success, "delight" moments */
+  --m-spring:  cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* Tight in — for press feedback */
+  --m-tight:   cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   ENTRANCE — applied once on first mount.
+   Use class="m-enter m-stagger-N" where N = 0..7
+   ───────────────────────────────────────────────────────────── */
+
+@keyframes m-enter {
+  0%   { opacity: 0; transform: translateY(8px); filter: blur(6px); }
+  60%  { filter: blur(0); }
+  100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+.m-enter {
+  animation: m-enter var(--m-slow) var(--m-soft) both;
+}
+.m-enter-fast { animation: m-enter var(--m-base) var(--m-soft) both; }
+
+/* Stagger delays (35ms between sibling reveals) */
+.m-stagger-0 { animation-delay:   0ms; }
+.m-stagger-1 { animation-delay:  35ms; }
+.m-stagger-2 { animation-delay:  70ms; }
+.m-stagger-3 { animation-delay: 105ms; }
+.m-stagger-4 { animation-delay: 140ms; }
+.m-stagger-5 { animation-delay: 175ms; }
+.m-stagger-6 { animation-delay: 210ms; }
+.m-stagger-7 { animation-delay: 245ms; }
+
+/* Scale-up reveal — for hero / primary cards */
+@keyframes m-rise {
+  0%   { opacity: 0; transform: translateY(12px) scale(0.96); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.m-rise { animation: m-rise var(--m-slow) var(--m-soft) both; }
+
+/* ─────────────────────────────────────────────────────────────
+   AMBIENT — runs forever, very subtle. Use sparingly.
+   ───────────────────────────────────────────────────────────── */
+
+/* Breath: 1% pulse on opacity + scale. Used on live indicators. */
+@keyframes m-breath {
+  0%, 100% { opacity: 1;    transform: scale(1); }
+  50%      { opacity: 0.78; transform: scale(0.985); }
+}
+.m-breath { animation: m-breath var(--m-ambient) var(--m-soft) infinite; }
+
+/* Glow halo around accent dots — used on status pills. */
+@keyframes m-halo {
+  0%, 100% { box-shadow: 0 0 0 0   currentColor; opacity: 0.55; }
+  50%      { box-shadow: 0 0 0 6px transparent;  opacity: 0.0; }
+}
+.m-halo {
+  position: relative;
+}
+.m-halo::after {
+  content: "";
+  position: absolute; inset: -3px;
+  border-radius: inherit;
+  pointer-events: none;
+  animation: m-halo 2.4s var(--m-soft) infinite;
+  color: currentColor;
+}
+
+/* Slow drift: used on hero backgrounds */
+@keyframes m-drift {
+  0%   { transform: translate(0, 0); }
+  50%  { transform: translate(-8px, -4px); }
+  100% { transform: translate(0, 0); }
+}
+.m-drift { animation: m-drift 14s var(--m-soft) infinite; }
+
+/* ─────────────────────────────────────────────────────────────
+   INTERACTIONS — press states, hover lift.
+   Apple's rule: scale 0.97 + opacity 0.7 on press.
+   ───────────────────────────────────────────────────────────── */
+
+.m-press {
+  transition:
+    transform var(--m-fast) var(--m-tight),
+    opacity   var(--m-fast) var(--m-tight),
+    box-shadow var(--m-base) var(--m-soft);
+}
+.m-press:active {
+  transform: scale(0.97);
+  opacity: 0.85;
+}
+
+.m-lift {
+  transition: transform var(--m-base) var(--m-soft),
+              box-shadow var(--m-base) var(--m-soft),
+              border-color var(--m-base) var(--m-soft);
+}
+.m-lift:hover {
+  transform: translateY(-1px);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   PROGRESS — used by disclaimer scroll bar, traffic bars.
+   ───────────────────────────────────────────────────────────── */
+.m-progress > span {
+  transition: width var(--m-base) var(--m-soft);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   PARALLAX layers — used by starfield, depth scenes.
+   ───────────────────────────────────────────────────────────── */
+@keyframes m-twinkle {
+  0%, 100% { opacity: var(--o, 0.6); }
+  50%      { opacity: 0.05; }
+}
+.m-twinkle {
+  animation: m-twinkle var(--t, 3s) var(--m-soft) infinite;
+  animation-delay: var(--d, 0s);
+}
+
+@keyframes m-pan-slow  { from { transform: translateY(0); } to { transform: translateY(-18px); } }
+@keyframes m-pan-med   { from { transform: translateY(0); } to { transform: translateY(-36px); } }
+@keyframes m-pan-fast  { from { transform: translateY(0); } to { transform: translateY(-72px); } }
+.m-pan-slow { animation: m-pan-slow  28s var(--m-soft) infinite alternate; }
+.m-pan-med  { animation: m-pan-med   18s var(--m-soft) infinite alternate; }
+.m-pan-fast { animation: m-pan-fast  12s var(--m-soft) infinite alternate; }
+
+/* ─────────────────────────────────────────────────────────────
+   SHINE / GLOW — used on primary CTAs sparingly.
+   A single slow pass every 6s. Never on more than one element
+   at a time.
+   ───────────────────────────────────────────────────────────── */
+@keyframes m-shine {
+  0%   { background-position: -200% 0; }
+  60%  { background-position:  200% 0; }
+  100% { background-position:  200% 0; }
+}
+.m-shine {
+  background-image: linear-gradient(
+    100deg,
+    transparent 30%,
+    rgba(255,255,255,0.22) 50%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: m-shine 6s var(--m-soft) infinite;
+  pointer-events: none;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Respect users' reduced-motion preference.
+   ───────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .m-enter, .m-enter-fast, .m-rise,
+  .m-breath, .m-halo::after,
+  .m-drift, .m-twinkle,
+  .m-pan-slow, .m-pan-med, .m-pan-fast,
+  .m-shine {
+    animation: none !important;
+  }
+  .m-press, .m-lift { transition: none !important; }
+
+  /* Catch-all for component-scoped keyframes (tcUp, ac-sheet, ef-sheet,
+     gm-sheet, as-sheet, qr-sheet, scroll, titleGlow, primaryGlow, aboveIn,
+     ctaIn, fly*, layer*, etc). State-driven CSS transitions defined inline
+     keep their declared duration — that's intentional. */
+  *, *::before, *::after {
+    animation-duration:     0.001ms !important;
+    animation-delay:        0ms      !important;
+    animation-iteration-count: 1     !important;
+  }
+}

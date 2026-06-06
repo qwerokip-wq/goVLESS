@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# govless-audit-prune
+# Retention: delete govless_audit rows older than 90d. Weekly (Mon) VACUUM.
+# Updates govless_meta(last_audit_prune).
+
+set -euo pipefail
+
+DB="${GOVLESS_STATE_DB:-/var/lib/govless/state.db}"
+RETENTION_DAYS="${GOVLESS_AUDIT_RETENTION_DAYS:-90}"
+
+if [ ! -f "$DB" ]; then
+    echo "govless-audit-prune: $DB not found — nothing to do" >&2
+    exit 0
+fi
+
+if ! command -v sqlite3 >/dev/null 2>&1; then
+    echo "govless-audit-prune: sqlite3 not installed" >&2
+    exit 1
+fi
+
+NOW="$(date -u +%s)"
+DOW="$(date -u +%u)" # 1=Mon..7=Sun
+
+# Delete old rows.
+sqlite3 "$DB" <<SQL
+PRAGMA busy_timeout = 5000;
+DELETE FROM govless_audit WHERE ts < (strftime('%s','now') - ${RETENTION_DAYS} * 86400);
+INSERT INTO govless_meta(key, value) VALUES('last_audit_prune', '${NOW}')
+  ON CONFLICT(key) DO UPDATE SET value = excluded.value;
+SQL
+
+# Weekly VACUUM on Monday.
+if [ "$DOW" = "1" ]; then
+    sqlite3 "$DB" "VACUUM;" || echo "govless-audit-prune: VACUUM failed (non-fatal)" >&2
+    sqlite3 "$DB" "INSERT INTO govless_meta(key, value) VALUES('last_audit_vacuum', '${NOW}') ON CONFLICT(key) DO UPDATE SET value = excluded.value;" || true
+fi
+
+exit 0

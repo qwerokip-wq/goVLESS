@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# govless-tunnel-escalation-check
+# Tracks restart timestamps. If >=3 restarts happened within 5 minutes,
+# escalates: wall message + journald log + govlessctl notify-admins critical.
+
+set -euo pipefail
+
+RESTART_LOG="${GOVLESS_TUNNEL_RESTARTS_FILE:-/run/govless/tunnel.restarts}"
+WINDOW_SEC="${GOVLESS_TUNNEL_ESCALATION_WINDOW:-300}"
+THRESHOLD="${GOVLESS_TUNNEL_ESCALATION_THRESHOLD:-3}"
+GOVLESSCTL="${GOVLESSCTL_BIN:-/usr/local/bin/govlessctl}"
+
+mkdir -p "$(dirname "$RESTART_LOG")" 2>/dev/null || true
+
+NOW="$(date -u +%s)"
+printf '%s\n' "$NOW" >>"$RESTART_LOG"
+
+# Prune entries older than $WINDOW_SEC.
+CUTOFF=$((NOW - WINDOW_SEC))
+TMP="$(mktemp "${RESTART_LOG}.XXXXXX")"
+awk -v cut="$CUTOFF" '($0+0) >= cut { print }' "$RESTART_LOG" >"$TMP" || true
+mv -f "$TMP" "$RESTART_LOG"
+
+COUNT="$(wc -l <"$RESTART_LOG" | tr -d ' ')"
+[ -z "$COUNT" ] && COUNT=0
+
+if [ "$COUNT" -lt "$THRESHOLD" ]; then
+    exit 0
+fi
+
+MSG="goVLESS: Quick Tunnel restarted ${COUNT} times in ${WINDOW_SEC}s — consider switching to a Named Tunnel for stability."
+
+# journald
+if command -v logger >/dev/null 2>&1; then
+    logger -t govless-tunnel-escalation -p daemon.crit -- "$MSG" || true
+fi
+
+# wall (best-effort; may fail in container)
+if command -v wall >/dev/null 2>&1; then
+    echo "$MSG" | wall 2>/dev/null || true
+fi
+
+# govlessctl notify
+if [ -x "$GOVLESSCTL" ]; then
+    "$GOVLESSCTL" notify-admins --severity critical --message "$MSG" >/dev/null 2>&1 || true
+fi
+
+# Reset window so repeated restart cycles do not spam admins.
+: >"$RESTART_LOG"
+
+exit 0

@@ -1,0 +1,10 @@
+[Unit]
+Description=Prune goVLESS audit rows older than 90 days (weekly VACUUM)
+
+[Service]
+Type=oneshot
+User=govless
+Group=govless
+ExecStart=/usr/local/bin/govless-audit-prune
+StandardOutput=journal
+StandardError=journal

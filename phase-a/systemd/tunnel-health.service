@@ -1,0 +1,9 @@
+[Unit]
+Description=goVLESS Quick Tunnel health check (hysteresis + cold-start grace)
+After=cloudflared-quick.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/govless-tunnel-health-check
+StandardOutput=journal
+StandardError=journal

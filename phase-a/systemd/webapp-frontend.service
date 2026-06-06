@@ -1,0 +1,42 @@
+[Unit]
+Description=goVLESS WebApp frontend + /api/rpc proxy (Lite, behind cloudflared)
+# In Lite there is no nginx, so the static Mini App is served by
+# /opt/govless/webapp/server.py — a small stdlib HTTP server that also
+# proxies POST /api/rpc and GET /api/healthz into the govlessctl UNIX
+# socket. Without this proxy the Mini App's RPC calls would 404 and the
+# whole UI would be non-functional in Lite mode.
+After=network-online.target govlessctl.service
+Wants=network-online.target
+Requires=govlessctl.service
+ConditionPathExists=/opt/govless/webapp/dist/index.html
+ConditionPathExists=/opt/govless/webapp/server.py
+
+[Service]
+Type=simple
+User=govless
+Group=govless
+WorkingDirectory=/opt/govless/webapp
+# server.py args mirror the previous stdlib invocation:
+#   --host/--port/--dist match exactly. --sock points at the daemon socket
+#   (group govless 0660, so this service can connect).
+ExecStart=/usr/bin/python3 /opt/govless/webapp/server.py \
+    --host 127.0.0.1 \
+    --port 8443 \
+    --dist /opt/govless/webapp/dist \
+    --sock /run/govlessctl.sock
+Restart=on-failure
+RestartSec=5
+
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+NoNewPrivileges=yes
+ReadOnlyPaths=/opt/govless/webapp
+# /run is intentionally NOT in ReadOnlyPaths — we need to connect() to
+# /run/govlessctl.sock (read/write on the abstract socket FD).
+
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# govless-bot — systemd ExecStart shim for the aiogram bot.
+# Decouples the unit from the .py file's shebang.
+set -euo pipefail
+PY=/opt/govless/venv/bin/python
+[ -x "$PY" ] || PY=/usr/bin/python3
+exec "$PY" /opt/govless/bot/bot.py "$@"
