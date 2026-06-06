@@ -16,17 +16,47 @@
 
 ## Быстрый старт
 
+### 1. Локальный запуск (если скопировал файлы на сервер)
+
 ```bash
 sudo bash govless.sh
 ```
 
-Или через curl (на сервере):
+### 2. Через curl (одной строкой, на сервере)
 
 ```bash
 sudo bash <(curl -sL https://raw.githubusercontent.com/qwerokip-wq/goVLESS/main/bootstrap.sh)
 ```
 
-## Автоустановка Pro (без интерактива)
+Если process substitution (`<(...)`) не работает (нет `/dev/fd`), используй pipe:
+
+```bash
+curl -sL https://raw.githubusercontent.com/qwerokip-wq/goVLESS/main/bootstrap.sh | sudo bash
+```
+
+### 3. Скачать и запустить (две команды)
+
+```bash
+curl -sL -o bootstrap.sh https://raw.githubusercontent.com/qwerokip-wq/goVLESS/main/bootstrap.sh
+sudo bash bootstrap.sh
+```
+
+### 4. Через wget
+
+```bash
+wget -qO- https://raw.githubusercontent.com/qwerokip-wq/goVLESS/main/bootstrap.sh | sudo bash
+```
+
+### 5. Установка git + клонирование (для доступа к полному набору файлов)
+
+```bash
+sudo apt update && sudo apt install -y git
+git clone https://github.com/qwerokip-wq/goVLESS.git
+cd goVLESS
+sudo bash govless.sh
+```
+
+### 6. Автоустановка Pro (без интерактива, env-конфиг)
 
 ```bash
 sudo bash deploy_pro.sh
